@@ -5,19 +5,65 @@ import {
   ColumnType,
   FormulaColumn,
   FormulaType,
+  ApiColumn,
+  ApiType,
 } from "./types";
 
-// function mockAPIResponse(metadata, rowParams) {
-//   // mock the responses for the API
-//   return result;
-// }
+function mockAPIResponse(column: ApiColumn, rowParams: Row) {
+  const { apiType } = column;
+  switch (apiType) {
+    case ApiType.GoogleSearch:
+      return [
+        {
+          url: "linkedin.com/in/kareemamin",
+          text: "Kareem is the CEO & Founder of a NYC-based Startup called Clay...",
+        },
+        {
+          url: "twitter.com/kareemamin",
+          text: "Welcome to my Twitter profile....",
+        },
+      ];
+    case ApiType.LiProfile:
+      return [
+        {
+          name: "Kareem",
+          job: "Software Engineer",
+          tenure: "10 years",
+        },
+        {
+          name: "Janvi",
+          job: "Software Engineer",
+          tenure: "3 years",
+        },
+      ];
+  }
 
-// function getDataFromAPI(metadata, rowParams) {
+  return result;
+}
+
+// function getDataFromAPI(column: ApiColumn, rowParams: Row) {
 //   return new Promise((resolve) => {
 //     const result = mockAPIResponse(metadata, rowParams);
 //     setTimeout(() => resolve(result), 2000);
 //   });
 // }
+
+function evaluateApiColumn(
+  column: ApiColumn,
+  columns: Columns,
+  rowData: Row,
+  columnIndex: number
+) {
+  // const inputFromColumnIndex = columns.findIndex(
+  //   (c) => c.name === column.inputFromColumn.name
+  // );
+  // const inputFromColumn = rowData[inputFromColumnIndex];
+  // if (inputValues.map((v) => v.val).includes("")) {
+  //   inputValues[columnIndex].val = "MISSING INPUT";
+  // } else {
+  //   rowData[columnIndex].val = "LOADING";
+  // }
+}
 
 function evaluateFormula(
   formula: FormulaColumn,
@@ -27,10 +73,11 @@ function evaluateFormula(
   const { type } = formula.inputs;
   switch (type) {
     case FormulaType.Concat:
-      if (inputValues.includes("")) {
-        inputValues[columnIndex] = "MISSING INPUT";
+      if (inputValues.map((v) => v.val).includes("")) {
+        inputValues[columnIndex].val = "MISSING INPUT";
       } else {
-        inputValues[columnIndex] = `${formula.inputs.init} ${inputValues
+        inputValues[columnIndex].val = `${formula.inputs.init} ${inputValues
+          .map((c) => c.val)
           .filter((_v, i) => i !== columnIndex)
           .join(" ")}`;
       }
@@ -92,7 +139,8 @@ export function runWorkflowForRow(
     case ColumnType.Formula:
       evaluateFormula(updateColumn, rowData, colIndex);
       break;
-    // case ColumnType.API:
+    case ColumnType.API:
+      evaluateApiColumn(updateColumn, columns, rowData, colIndex);
     default:
       throw new Error("Invalid column type");
   }
@@ -104,5 +152,5 @@ export function runWorkflowForRow(
 }
 
 function refreshUI(rowData: Row) {
-  console.log(rowData);
+  console.log(rowData.map((c) => c.val));
 }

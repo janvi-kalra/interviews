@@ -27,9 +27,24 @@ interface BasicColumn extends Column<ColumnType.Basic> {}
 export interface FormulaColumn extends Column<ColumnType.Formula> {
   inputs: ConcatFormula | ExtractFormula;
 }
-export type Columns = (BasicColumn | FormulaColumn)[];
 
-export type Cell = string;
+export enum ApiType {
+  GoogleSearch = "GoogleSearch",
+  LiProfile = "LiProfile",
+}
+
+export interface ApiColumn extends Column<ColumnType.API> {
+  apiType: ApiType;
+  inputFromColumn: Column<ColumnType.Basic | ColumnType.Formula>;
+}
+
+export type Columns = (BasicColumn | FormulaColumn | ApiColumn)[];
+
+export type Cell = {
+  val: string;
+  apiData?: any[]; // Problem does not define the structure of the data.
+};
+
 export type Row = Cell[];
 export type CellUpdate = {
   colName: string;
