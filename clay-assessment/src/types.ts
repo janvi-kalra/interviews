@@ -1,3 +1,5 @@
+import { ColumnName } from ".";
+
 export enum FormulaType {
   Concat = "Concat",
   Extract = "Extract",
@@ -11,7 +13,7 @@ interface ConcatFormula extends Formula<FormulaType.Concat> {
 interface ExtractFormula extends Formula<FormulaType.Extract> {
   field: string;
   index: number;
-  columnName: string; // Don't have enough information to know what type this is.
+  columnName: ColumnName;
 }
 
 export enum ColumnType {
@@ -21,7 +23,10 @@ export enum ColumnType {
 }
 interface Column<T extends ColumnType> {
   type: T;
-  name: string;
+  name: ColumnName;
+  // The value of the cells in this column are dependent on all columns listed here.
+  // In a row, if any of the columns in dep change, we must update this column as well.
+  deps: ColumnName[];
 }
 export interface BasicColumn extends Column<ColumnType.Basic> {}
 export interface FormulaColumn extends Column<ColumnType.Formula> {
@@ -35,7 +40,7 @@ export enum ApiType {
 
 export interface ApiColumn extends Column<ColumnType.API> {
   apiType: ApiType;
-  inputColumnName: string;
+  inputColumnName: ColumnName;
 }
 
 export type Columns = (BasicColumn | FormulaColumn | ApiColumn)[];
@@ -47,6 +52,6 @@ export type Cell = {
 
 export type Row = Cell[];
 export type CellUpdate = {
-  colName: string;
+  colName: ColumnName;
   newCell: Cell;
 };

@@ -1,3 +1,4 @@
+import { Queue } from "./queue";
 import {
   CellUpdate,
   Row,
@@ -7,6 +8,7 @@ import {
   FormulaType,
   ApiColumn,
   ApiType,
+  BasicColumn,
 } from "./types";
 
 export enum ColumnName {
@@ -17,6 +19,16 @@ export enum ColumnName {
   PerformSearch = "PerformSearch",
   LinkedinUrl = "LinkedinUrl",
   LinkedinData = "LinkedinData",
+}
+
+type ColumnNameQ = Queue<ColumnName>;
+
+function getCellIndexFromColumnName(columns: Columns, columnName: ColumnName) {
+  const index = columns.findIndex((column) => column.name === columnName);
+  if (index === -1) {
+    throw new Error(`no column name with the name: ${columnName}`);
+  }
+  return index;
 }
 
 // Instructions mention that any can assume metadata necessary is passed in.
@@ -57,9 +69,7 @@ async function getDataFromAPI(
 ) {
   return new Promise((resolve) => {
     const result = mockAPIResponse(apiType);
-    console.log("search result", result);
     rowData[apiColumnIndex].apiData = result;
-    console.log("rowData[apiColumnIndex]", result);
 
     rowData[apiColumnIndex].val =
       apiType === ApiType.GoogleSearch ? "Search Found" : "Profile Found";
@@ -71,17 +81,31 @@ async function evaluateApiColumn(
   column: ApiColumn,
   columns: Columns,
   rowData: Row,
-  apiColumnIndex: number
+  apiColumnIndex: number,
+  Q: ColumnNameQ
 ) {
   const inputColumn =
-    rowData[columns.findIndex((c) => c.name === column.inputColumnName)];
+    rowData[getCellIndexFromColumnName(columns, column.inputColumnName)];
   if (inputColumn.val === "MISSING INPUT") {
     rowData[apiColumnIndex].val = "MISSING INPUT";
   } else {
     rowData[apiColumnIndex].val = "LOADING";
     await getDataFromAPI(rowData, column.apiType, apiColumnIndex);
-    // Since something changed, see if formulas should change.
-    await updateDependantFormulaCols(rowData, columns);
+  }
+  updateQ(Q, columns, column.name);
+}
+
+function updateQ(
+  Q: ColumnNameQ,
+  columns: Columns,
+  updatedColumnName: ColumnName
+) {
+  // Look at the deps of all the columns. If a column was dependent on this column,
+  // now that this has been updated, update that too.
+  for (const col of columns) {
+    if (col.deps.includes(updatedColumnName)) {
+      Q.enqueue(col.name);
+    }
   }
 }
 
@@ -89,7 +113,8 @@ async function evaluateFormula(
   formulaCol: FormulaColumn,
   columns: Columns,
   rowData: Row,
-  formulaColIndex: number
+  formulaColIndex: number,
+  Q: ColumnNameQ
 ) {
   const { type } = formulaCol.inputs;
   switch (type) {
@@ -104,8 +129,6 @@ async function evaluateFormula(
             (_v, i) => i !== formulaColIndex && basicColIndices.includes(i)
           )
           .join(" ")}`;
-        // If anything changed, see if anything in formulas should change.
-        await updateDependantApiCols(rowData, columns);
       }
       break;
     case FormulaType.Extract:
@@ -113,19 +136,18 @@ async function evaluateFormula(
       console.log("got to extract for: ", columnName);
 
       const array =
-        rowData[columns.findIndex((c) => c.name === columnName)].apiData;
+        rowData[getCellIndexFromColumnName(columns, columnName)].apiData;
 
       if (!array || index >= array.length) {
         rowData[formulaColIndex].val = "MISSING INPUT";
         break;
       }
       rowData[formulaColIndex] = array[index][field];
-      // If anything changed, see if anything in formulas should change.
-      await updateDependantApiCols(rowData, columns);
       break;
     default:
       throw new Error("Invalid formula type");
   }
+  updateQ(Q, columns, formulaCol.name);
 }
 
 function columnIndicesOfType(columns: Columns, columnType: ColumnType) {
@@ -140,34 +162,14 @@ function columnIndicesOfType(columns: Columns, columnType: ColumnType) {
   return formulaColIndices;
 }
 
-async function updateDependantFormulaCols(rowData: Row, columns: Columns) {
-  const formulaColIndices = columnIndicesOfType(columns, ColumnType.Formula);
-  for (const i of formulaColIndices) {
-    const formulaCol = columns[i];
-    if (formulaCol.type !== ColumnType.Formula) {
-      throw new Error("Dependency columns should only be Formulas");
-    }
-    await evaluateFormula(formulaCol, columns, rowData, i);
+function getColumnFromColumnName(
+  columns: Columns,
+  columnName: ColumnName | undefined
+) {
+  if (!columnName) {
+    return;
   }
-}
-
-async function updateDependantApiCols(rowData: Row, columns: Columns) {
-  const colIndices = columns
-    .map((col, i) => {
-      if (col.type === ColumnType.API) {
-        return i;
-      }
-      return -1;
-    })
-    .filter((i) => i != -1);
-
-  for (const i of colIndices) {
-    const col = columns[i];
-    if (col.type !== ColumnType.API) {
-      throw new Error("Dependency columns should only be Apis");
-    }
-    await evaluateApiColumn(col, columns, rowData, i);
-  }
+  return columns.find((col) => col.name === columnName);
 }
 
 export async function runWorkflowForRow(
@@ -175,38 +177,40 @@ export async function runWorkflowForRow(
   rowData: Row,
   columns: Columns
 ): Promise<Row> {
-  const colIndex = columns.findIndex(
-    (column) => column.name === updatedCell.colName
-  );
-  if (colIndex === -1) {
-    throw new Error(
-      "updatedCell has a column name that is not in the given row"
-    );
-  }
-
-  const column = columns[colIndex];
+  const Q = new Queue<ColumnName>();
+  const colIndex = getCellIndexFromColumnName(columns, updatedCell.colName);
+  const column =
+    columns[getCellIndexFromColumnName(columns, updatedCell.colName)];
   switch (column.type) {
     case ColumnType.Basic:
       rowData[colIndex] = updatedCell.newCell;
-      await updateDependantFormulaCols(rowData, columns);
-      await updateDependantApiCols(rowData, columns);
       break;
     case ColumnType.Formula:
-      await evaluateFormula(column, columns, rowData, colIndex);
-      await updateDependantFormulaCols(rowData, columns);
-      await updateDependantApiCols(rowData, columns);
-
+      await evaluateFormula(column, columns, rowData, colIndex, Q);
       break;
     case ColumnType.API:
-      await evaluateApiColumn(column, columns, rowData, colIndex);
-      await updateDependantFormulaCols(rowData, columns);
-      await updateDependantApiCols(rowData, columns);
-
+      await evaluateApiColumn(column, columns, rowData, colIndex, Q);
+      break;
     default:
       throw new Error("Invalid column type");
   }
 
-  // Find all columns that are likely to now change:
+  // Reevaluate all columns that were affected.
+  while (!Q.isEmpty()) {
+    const depCol = getColumnFromColumnName(columns, Q.dequeue());
+    switch (depCol?.type) {
+      case ColumnType.Formula:
+        await evaluateFormula(depCol, columns, rowData, colIndex, Q);
+        break;
+      case ColumnType.API:
+        await evaluateApiColumn(depCol, columns, rowData, colIndex, Q);
+        break;
+      case ColumnType.Basic:
+        throw new Error("A basic column type cannot be a dependent column");
+      default:
+        throw new Error("Invalid column type");
+    }
+  }
 
   refreshUI(rowData);
   return rowData;

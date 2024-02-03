@@ -18,9 +18,9 @@ let rowData: Row = [
   { val: "" },
 ];
 let initialColumns: Columns = [
-  { type: ColumnType.Basic, name: ColumnName.FirstName },
-  { type: ColumnType.Basic, name: ColumnName.LastName },
-  { type: ColumnType.Basic, name: ColumnName.CompanyName },
+  { type: ColumnType.Basic, name: ColumnName.FirstName, deps: [] },
+  { type: ColumnType.Basic, name: ColumnName.LastName, deps: [] },
+  { type: ColumnType.Basic, name: ColumnName.CompanyName, deps: [] },
   {
     type: ColumnType.Formula,
     name: ColumnName.GoogleSearchInput,
@@ -28,12 +28,14 @@ let initialColumns: Columns = [
       type: FormulaType.Concat,
       init: "linkedin.com",
     },
+    deps: [ColumnName.FirstName, ColumnName.LastName, ColumnName.CompanyName],
   },
   {
     type: ColumnType.API,
     name: ColumnName.PerformSearch,
     apiType: ApiType.GoogleSearch,
     inputColumnName: ColumnName.GoogleSearchInput,
+    deps: [ColumnName.GoogleSearchInput],
   },
   {
     type: ColumnType.Formula,
@@ -44,12 +46,14 @@ let initialColumns: Columns = [
       index: 0,
       field: "url",
     },
+    deps: [ColumnName.PerformSearch],
   },
   {
     type: ColumnType.API,
     name: ColumnName.LinkedinData,
     apiType: ApiType.LiProfile,
     inputColumnName: ColumnName.LinkedinUrl,
+    deps: [ColumnName.LinkedinUrl],
   },
 ];
 
