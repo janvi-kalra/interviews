@@ -6,7 +6,7 @@ import {
   FormulaType,
   ApiType,
 } from "./types";
-import { runWorkflowForRow } from ".";
+import { ColumnName, runWorkflowForRow } from ".";
 
 let rowData: Row = [
   { val: "" },
@@ -18,12 +18,12 @@ let rowData: Row = [
   { val: "" },
 ];
 let initialColumns: Columns = [
-  { type: ColumnType.Basic, name: "First Name" },
-  { type: ColumnType.Basic, name: "Last Name" },
-  { type: ColumnType.Basic, name: "Company Name" },
+  { type: ColumnType.Basic, name: ColumnName.FirstName },
+  { type: ColumnType.Basic, name: ColumnName.LastName },
+  { type: ColumnType.Basic, name: ColumnName.CompanyName },
   {
     type: ColumnType.Formula,
-    name: "Google Search Input",
+    name: ColumnName.GoogleSearchInput,
     inputs: {
       type: FormulaType.Concat,
       init: "linkedin.com",
@@ -31,25 +31,25 @@ let initialColumns: Columns = [
   },
   {
     type: ColumnType.API,
-    name: "Perform Search",
+    name: ColumnName.PerformSearch,
     apiType: ApiType.GoogleSearch,
-    inputColumnName: "Google Search Input",
+    inputColumnName: ColumnName.GoogleSearchInput,
   },
   {
     type: ColumnType.Formula,
-    name: "Linkedin URL",
+    name: ColumnName.LinkedinUrl,
     inputs: {
       type: FormulaType.Extract,
-      columnName: "Perform Search",
+      columnName: ColumnName.PerformSearch,
       index: 0,
       field: "url",
     },
   },
   {
     type: ColumnType.API,
-    name: "Linkedin Data",
+    name: ColumnName.LinkedinData,
     apiType: ApiType.LiProfile,
-    inputColumnName: "Linkedin URL",
+    inputColumnName: ColumnName.LinkedinUrl,
   },
 ];
 
@@ -58,19 +58,19 @@ const run = async (cellUpdate: CellUpdate) => {
 };
 
 const firstUpdatedCell: CellUpdate = {
-  colName: "First Name",
+  colName: ColumnName.FirstName,
   newCell: { val: "Luna" },
 };
 run(firstUpdatedCell);
 
 const secondUpdatedCell: CellUpdate = {
-  colName: "Last Name",
+  colName: ColumnName.LastName,
   newCell: { val: "Ruan" },
 };
 run(secondUpdatedCell);
 
 const thirdUpdatedCell: CellUpdate = {
-  colName: "Company Name",
+  colName: ColumnName.CompanyName,
   newCell: { val: "Clay" },
 };
 run(thirdUpdatedCell);

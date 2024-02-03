@@ -9,6 +9,16 @@ import {
   ApiType,
 } from "./types";
 
+export enum ColumnName {
+  FirstName = "FirstName",
+  LastName = "LastName",
+  CompanyName = "CompanyName",
+  GoogleSearchInput = "GoogleSearchInput",
+  PerformSearch = "PerformSearch",
+  LinkedinUrl = "LinkedinUrl",
+  LinkedinData = "LinkedinData",
+}
+
 // Instructions mention that any can assume metadata necessary is passed in.
 // So just stubbing out the response, and not actually passing it in here.
 export function mockAPIResponse(apiType: ApiType, metadata?: any) {
