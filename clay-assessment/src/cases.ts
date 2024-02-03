@@ -1,7 +1,22 @@
-import { ColumnType, Columns, CellUpdate, Row, FormulaType } from "./types";
+import {
+  ColumnType,
+  Columns,
+  CellUpdate,
+  Row,
+  FormulaType,
+  ApiType,
+} from "./types";
 import { runWorkflowForRow } from ".";
 
-let rowData: Row = [{ val: "" }, { val: "" }, { val: "" }, { val: "" }];
+let rowData: Row = [
+  { val: "" },
+  { val: "" },
+  { val: "" },
+  { val: "" },
+  { val: "" },
+  { val: "" },
+  { val: "" },
+];
 let initialColumns: Columns = [
   { type: ColumnType.Basic, name: "First Name" },
   { type: ColumnType.Basic, name: "Last Name" },
@@ -14,23 +29,48 @@ let initialColumns: Columns = [
       init: "linkedin.com",
     },
   },
+  {
+    type: ColumnType.API,
+    name: "Perform Search",
+    apiType: ApiType.GoogleSearch,
+    inputColumnName: "Google Search Input",
+  },
+  {
+    type: ColumnType.Formula,
+    name: "Linkedin URL",
+    inputs: {
+      type: FormulaType.Extract,
+      columnName: "Perform Search",
+      index: 0,
+      field: "url",
+    },
+  },
+  {
+    type: ColumnType.API,
+    name: "Linkedin Data",
+    apiType: ApiType.LiProfile,
+    inputColumnName: "Linkedin URL",
+  },
 ];
+
+const run = async (cellUpdate: CellUpdate) => {
+  rowData = await runWorkflowForRow(cellUpdate, rowData, initialColumns);
+};
 
 const firstUpdatedCell: CellUpdate = {
   colName: "First Name",
   newCell: { val: "Luna" },
 };
-rowData = runWorkflowForRow(firstUpdatedCell, rowData, initialColumns);
+run(firstUpdatedCell);
 
 const secondUpdatedCell: CellUpdate = {
   colName: "Last Name",
   newCell: { val: "Ruan" },
 };
-rowData = runWorkflowForRow(secondUpdatedCell, rowData, initialColumns);
+run(secondUpdatedCell);
 
 const thirdUpdatedCell: CellUpdate = {
   colName: "Company Name",
   newCell: { val: "Clay" },
 };
-
-runWorkflowForRow(thirdUpdatedCell, rowData, initialColumns);
+run(thirdUpdatedCell);

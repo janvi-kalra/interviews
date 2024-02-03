@@ -11,7 +11,7 @@ interface ConcatFormula extends Formula<FormulaType.Concat> {
 interface ExtractFormula extends Formula<FormulaType.Extract> {
   field: string;
   index: number;
-  array: any[]; // Don't have enough information to know what type this is.
+  columnName: string; // Don't have enough information to know what type this is.
 }
 
 export enum ColumnType {
@@ -23,7 +23,7 @@ interface Column<T extends ColumnType> {
   type: T;
   name: string;
 }
-interface BasicColumn extends Column<ColumnType.Basic> {}
+export interface BasicColumn extends Column<ColumnType.Basic> {}
 export interface FormulaColumn extends Column<ColumnType.Formula> {
   inputs: ConcatFormula | ExtractFormula;
 }
@@ -35,7 +35,7 @@ export enum ApiType {
 
 export interface ApiColumn extends Column<ColumnType.API> {
   apiType: ApiType;
-  inputFromColumn: Column<ColumnType.Basic | ColumnType.Formula>;
+  inputColumnName: string;
 }
 
 export type Columns = (BasicColumn | FormulaColumn | ApiColumn)[];

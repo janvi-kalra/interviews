@@ -9,8 +9,9 @@ import {
   ApiType,
 } from "./types";
 
-function mockAPIResponse(column: ApiColumn, rowParams: Row) {
-  const { apiType } = column;
+// Instructions mention that any can assume metadata necessary is passed in.
+// So just stubbing out the response, and not actually passing it in here.
+export function mockAPIResponse(apiType: ApiType, metadata?: any) {
   switch (apiType) {
     case ApiType.GoogleSearch:
       return [
@@ -37,90 +38,133 @@ function mockAPIResponse(column: ApiColumn, rowParams: Row) {
         },
       ];
   }
-
-  return result;
 }
 
-// function getDataFromAPI(column: ApiColumn, rowParams: Row) {
-//   return new Promise((resolve) => {
-//     const result = mockAPIResponse(metadata, rowParams);
-//     setTimeout(() => resolve(result), 2000);
-//   });
-// }
+async function getDataFromAPI(
+  rowData: Row,
+  apiType: ApiType,
+  apiColumnIndex: number
+) {
+  return new Promise((resolve) => {
+    const result = mockAPIResponse(apiType);
+    console.log("search result", result);
+    rowData[apiColumnIndex].apiData = result;
+    console.log("rowData[apiColumnIndex]", result);
 
-function evaluateApiColumn(
+    rowData[apiColumnIndex].val =
+      apiType === ApiType.GoogleSearch ? "Search Found" : "Profile Found";
+    setTimeout(() => resolve(result), 2000);
+  });
+}
+
+async function evaluateApiColumn(
   column: ApiColumn,
   columns: Columns,
   rowData: Row,
-  columnIndex: number
+  apiColumnIndex: number
 ) {
-  // const inputFromColumnIndex = columns.findIndex(
-  //   (c) => c.name === column.inputFromColumn.name
-  // );
-  // const inputFromColumn = rowData[inputFromColumnIndex];
-  // if (inputValues.map((v) => v.val).includes("")) {
-  //   inputValues[columnIndex].val = "MISSING INPUT";
-  // } else {
-  //   rowData[columnIndex].val = "LOADING";
-  // }
+  const inputColumn =
+    rowData[columns.findIndex((c) => c.name === column.inputColumnName)];
+  if (inputColumn.val === "MISSING INPUT") {
+    rowData[apiColumnIndex].val = "MISSING INPUT";
+  } else {
+    rowData[apiColumnIndex].val = "LOADING";
+    await getDataFromAPI(rowData, column.apiType, apiColumnIndex);
+    // Since something changed, see if formulas should change.
+    await updateDependantFormulaCols(rowData, columns);
+  }
 }
 
-function evaluateFormula(
-  formula: FormulaColumn,
-  inputValues: Row,
-  columnIndex: number
+async function evaluateFormula(
+  formulaCol: FormulaColumn,
+  columns: Columns,
+  rowData: Row,
+  formulaColIndex: number
 ) {
-  const { type } = formula.inputs;
+  const { type } = formulaCol.inputs;
   switch (type) {
     case FormulaType.Concat:
-      if (inputValues.map((v) => v.val).includes("")) {
-        inputValues[columnIndex].val = "MISSING INPUT";
+      if (rowData.map((v) => v.val).includes("")) {
+        rowData[formulaColIndex].val = "MISSING INPUT";
       } else {
-        inputValues[columnIndex].val = `${formula.inputs.init} ${inputValues
+        const basicColIndices = columnIndicesOfType(columns, ColumnType.Basic);
+        rowData[formulaColIndex].val = `${formulaCol.inputs.init} ${rowData
           .map((c) => c.val)
-          .filter((_v, i) => i !== columnIndex)
+          .filter(
+            (_v, i) => i !== formulaColIndex && basicColIndices.includes(i)
+          )
           .join(" ")}`;
+        // If anything changed, see if anything in formulas should change.
+        await updateDependantApiCols(rowData, columns);
       }
       break;
     case FormulaType.Extract:
-      const { field, index, array } = formula.inputs;
-      if (index >= array.length) {
-        throw new Error("Invalid formula extraction inputs");
+      const { field, index, columnName } = formulaCol.inputs;
+      console.log("got to extract for: ", columnName);
+
+      const array =
+        rowData[columns.findIndex((c) => c.name === columnName)].apiData;
+
+      if (!array || index >= array.length) {
+        rowData[formulaColIndex].val = "MISSING INPUT";
+        break;
       }
-      if (!(field in array[index])) {
-        throw new Error("Invalid formula extraction inputs");
-      }
-      inputValues[columnIndex] = array[index].field;
+      rowData[formulaColIndex] = array[index][field];
+      // If anything changed, see if anything in formulas should change.
+      await updateDependantApiCols(rowData, columns);
       break;
     default:
       throw new Error("Invalid formula type");
   }
 }
 
-function updateDependantFormulaCols(columns: Columns, rowData: Row) {
+function columnIndicesOfType(columns: Columns, columnType: ColumnType) {
   const formulaColIndices = columns
     .map((col, i) => {
-      if (col.type === ColumnType.Formula) {
+      if (col.type === columnType) {
+        return i;
+      }
+      return -1;
+    })
+    .filter((i) => i != -1);
+  return formulaColIndices;
+}
+
+async function updateDependantFormulaCols(rowData: Row, columns: Columns) {
+  const formulaColIndices = columnIndicesOfType(columns, ColumnType.Formula);
+  for (const i of formulaColIndices) {
+    const formulaCol = columns[i];
+    if (formulaCol.type !== ColumnType.Formula) {
+      throw new Error("Dependency columns should only be Formulas");
+    }
+    await evaluateFormula(formulaCol, columns, rowData, i);
+  }
+}
+
+async function updateDependantApiCols(rowData: Row, columns: Columns) {
+  const colIndices = columns
+    .map((col, i) => {
+      if (col.type === ColumnType.API) {
         return i;
       }
       return -1;
     })
     .filter((i) => i != -1);
 
-  for (const i of formulaColIndices) {
-    const formulaCol = columns[i];
-    if (formulaCol.type !== ColumnType.Formula) {
-      throw new Error("Dependency columns should only be Formulas");
+  for (const i of colIndices) {
+    const col = columns[i];
+    if (col.type !== ColumnType.API) {
+      throw new Error("Dependency columns should only be Apis");
     }
-    evaluateFormula(formulaCol, rowData, i);
+    await evaluateApiColumn(col, columns, rowData, i);
   }
 }
 
-export function runWorkflowForRow(
+export async function runWorkflowForRow(
   updatedCell: CellUpdate,
   rowData: Row,
   columns: Columns
-): Row {
+): Promise<Row> {
   const colIndex = columns.findIndex(
     (column) => column.name === updatedCell.colName
   );
@@ -130,17 +174,24 @@ export function runWorkflowForRow(
     );
   }
 
-  const updateColumn = columns[colIndex];
-  switch (updateColumn.type) {
+  const column = columns[colIndex];
+  switch (column.type) {
     case ColumnType.Basic:
       rowData[colIndex] = updatedCell.newCell;
-      updateDependantFormulaCols(columns, rowData);
+      await updateDependantFormulaCols(rowData, columns);
+      await updateDependantApiCols(rowData, columns);
       break;
     case ColumnType.Formula:
-      evaluateFormula(updateColumn, rowData, colIndex);
+      await evaluateFormula(column, columns, rowData, colIndex);
+      await updateDependantFormulaCols(rowData, columns);
+      await updateDependantApiCols(rowData, columns);
+
       break;
     case ColumnType.API:
-      evaluateApiColumn(updateColumn, columns, rowData, colIndex);
+      await evaluateApiColumn(column, columns, rowData, colIndex);
+      await updateDependantFormulaCols(rowData, columns);
+      await updateDependantApiCols(rowData, columns);
+
     default:
       throw new Error("Invalid column type");
   }
