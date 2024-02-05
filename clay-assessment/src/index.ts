@@ -83,6 +83,7 @@ async function evaluateApiColumn(
     rowData[apiColumnIndex].val = "MISSING INPUT";
   } else {
     rowData[apiColumnIndex].val = "LOADING";
+    refreshUI(rowData);
     const result = await getDataFromAPI(apiType);
     rowData[apiColumnIndex].apiData = result;
     rowData[apiColumnIndex].val =

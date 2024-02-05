@@ -58,38 +58,33 @@ let initialColumns: Columns = [
   },
 ];
 
-async function run(updateCell: CellUpdate, rowData: Row, columns: Columns) {
+async function runCases(rowData: Row, columns: Columns) {
+  const firstUpdatedCell: CellUpdate = {
+    colName: ColumnName.FirstName,
+    newCell: { val: "Luna" },
+  };
+  const secondUpdatedCell: CellUpdate = {
+    colName: ColumnName.LastName,
+    newCell: { val: "Ruan" },
+  };
+  const thirdUpdatedCell: CellUpdate = {
+    colName: ColumnName.CompanyName,
+    newCell: { val: "Clay" },
+  };
   try {
-    rowData = await runWorkflowForRow(updateCell, rowData, columns);
+    console.log("************* TRIGGER CELL UPDATE 1 *************");
+    rowData = await runWorkflowForRow(firstUpdatedCell, rowData, columns);
+    console.log("************* TRIGGER CELL UPDATE 2 *************");
+    rowData = await runWorkflowForRow(secondUpdatedCell, rowData, columns);
+    console.log("************* TRIGGER CELL UPDATE 3 *************");
+    rowData = await runWorkflowForRow(thirdUpdatedCell, rowData, columns);
   } catch (error) {
     console.log("FAILED WITH ERROR:", error);
     throw error;
   }
 }
 
-const firstUpdatedCell: CellUpdate = {
-  colName: ColumnName.FirstName,
-  newCell: { val: "Luna" },
-};
-const secondUpdatedCell: CellUpdate = {
-  colName: ColumnName.LastName,
-  newCell: { val: "Ruan" },
-};
-const thirdUpdatedCell: CellUpdate = {
-  colName: ColumnName.CompanyName,
-  newCell: { val: "Clay" },
-};
-
-console.log("************* TRIGGER CELL UPDATE 1 *************");
-run(firstUpdatedCell, rowData, initialColumns)
-  .then(() => {
-    console.log("************* TRIGGER CELL UPDATE 2 *************");
-    run(secondUpdatedCell, rowData, initialColumns);
-  })
-  .then(() => {
-    console.log("************* TRIGGER CELL UPDATE 3 *************");
-    run(thirdUpdatedCell, rowData, initialColumns);
-  });
+runCases(rowData, initialColumns);
 
 /// Learnings:
 // 1. ts-node allows running await/async as top level
