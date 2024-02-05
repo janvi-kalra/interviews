@@ -11,35 +11,46 @@ import { ColumnName, mockAPIResponse, runWorkflowForRow } from "../src";
 describe("[Step 1] Basic Columns", () => {
   let rowData: Row = [{ val: "" }, { val: "" }, { val: "" }];
   let initialColumns: Columns = [
-    { type: ColumnType.Basic, name: ColumnName.FirstName },
-    { type: ColumnType.Basic, name: ColumnName.LastName },
-    { type: ColumnType.Basic, name: ColumnName.CompanyName },
+    { type: ColumnType.Basic, name: ColumnName.FirstName, deps: [] },
+    { type: ColumnType.Basic, name: ColumnName.LastName, deps: [] },
+    { type: ColumnType.Basic, name: ColumnName.CompanyName, deps: [] },
   ];
-
-  it(`update to cell in column ColumnName.FirstName`, () => {
+  it(`update to cell in column ColumnName.FirstName`, async () => {
     const firstUpdatedCell: CellUpdate = {
       colName: ColumnName.FirstName,
       newCell: { val: "Luna" },
     };
-    rowData = runWorkflowForRow(firstUpdatedCell, rowData, initialColumns);
+    rowData = await runWorkflowForRow(
+      firstUpdatedCell,
+      rowData,
+      initialColumns
+    );
     const answer = [{ val: "Luna" }, { val: "" }, { val: "" }];
     expect(JSON.stringify(rowData)).toEqual(JSON.stringify(answer));
   });
-  it(`update to cell in column ColumnName.LastName`, () => {
+  it(`update to cell in column ColumnName.LastName`, async () => {
     const secondUpdatedCell: CellUpdate = {
       colName: ColumnName.LastName,
       newCell: { val: "Ruan" },
     };
-    rowData = runWorkflowForRow(secondUpdatedCell, rowData, initialColumns);
+    rowData = await runWorkflowForRow(
+      secondUpdatedCell,
+      rowData,
+      initialColumns
+    );
     const answer = [{ val: "Luna" }, { val: "Ruan" }, { val: "" }];
     expect(JSON.stringify(rowData)).toEqual(JSON.stringify(answer));
   });
-  it(`update to cell in column ColumnName.CompanyName`, () => {
+  it(`update to cell in column ColumnName.CompanyName`, async () => {
     const thirdUpdatedCell: CellUpdate = {
       colName: ColumnName.CompanyName,
       newCell: { val: "Clay" },
     };
-    rowData = runWorkflowForRow(thirdUpdatedCell, rowData, initialColumns);
+    rowData = await runWorkflowForRow(
+      thirdUpdatedCell,
+      rowData,
+      initialColumns
+    );
     const answer = [{ val: "Luna" }, { val: "Ruan" }, { val: "Clay" }];
     expect(JSON.stringify(rowData)).toEqual(JSON.stringify(answer));
   });
@@ -48,9 +59,9 @@ describe("[Step 1] Basic Columns", () => {
 describe("[Step 2] Formula Columns", () => {
   let rowData: Row = [{ val: "" }, { val: "" }, { val: "" }, { val: "" }];
   let initialColumns: Columns = [
-    { type: ColumnType.Basic, name: ColumnName.FirstName },
-    { type: ColumnType.Basic, name: ColumnName.LastName },
-    { type: ColumnType.Basic, name: ColumnName.CompanyName },
+    { type: ColumnType.Basic, name: ColumnName.FirstName, deps: [] },
+    { type: ColumnType.Basic, name: ColumnName.LastName, deps: [] },
+    { type: ColumnType.Basic, name: ColumnName.CompanyName, deps: [] },
     {
       type: ColumnType.Formula,
       name: ColumnName.GoogleSearchInput,
@@ -58,15 +69,20 @@ describe("[Step 2] Formula Columns", () => {
         type: FormulaType.Concat,
         init: "linkedin.com",
       },
+      deps: [ColumnName.FirstName, ColumnName.LastName, ColumnName.CompanyName],
     },
   ];
 
-  it(`update to cell in column ColumnName.FirstName`, () => {
+  it(`update to cell in column ColumnName.FirstName`, async () => {
     const firstUpdatedCell: CellUpdate = {
       colName: ColumnName.FirstName,
       newCell: { val: "Luna" },
     };
-    rowData = runWorkflowForRow(firstUpdatedCell, rowData, initialColumns);
+    rowData = await runWorkflowForRow(
+      firstUpdatedCell,
+      rowData,
+      initialColumns
+    );
     const answer = [
       { val: "Luna" },
       { val: "" },
@@ -75,12 +91,16 @@ describe("[Step 2] Formula Columns", () => {
     ];
     expect(JSON.stringify(rowData)).toEqual(JSON.stringify(answer));
   });
-  it(`update to cell in column ColumnName.LastName`, () => {
+  it(`update to cell in column ColumnName.LastName`, async () => {
     const secondUpdatedCell: CellUpdate = {
       colName: ColumnName.LastName,
       newCell: { val: "Ruan" },
     };
-    rowData = runWorkflowForRow(secondUpdatedCell, rowData, initialColumns);
+    rowData = await runWorkflowForRow(
+      secondUpdatedCell,
+      rowData,
+      initialColumns
+    );
     const answer = [
       { val: "Luna" },
       { val: "Ruan" },
@@ -89,12 +109,16 @@ describe("[Step 2] Formula Columns", () => {
     ];
     expect(JSON.stringify(rowData)).toEqual(JSON.stringify(answer));
   });
-  it(`update to cell in column ColumnName.CompanyName`, () => {
+  it(`update to cell in column ColumnName.CompanyName`, async () => {
     const thirdUpdatedCell: CellUpdate = {
       colName: ColumnName.CompanyName,
       newCell: { val: "Clay" },
     };
-    rowData = runWorkflowForRow(thirdUpdatedCell, rowData, initialColumns);
+    rowData = await runWorkflowForRow(
+      thirdUpdatedCell,
+      rowData,
+      initialColumns
+    );
     const answer = [
       { val: "Luna" },
       { val: "Ruan" },
@@ -105,7 +129,7 @@ describe("[Step 2] Formula Columns", () => {
   });
 });
 
-describe.only("[Step 3] API Columns", () => {
+describe("[Step 3] API Columns", () => {
   let rowData: Row = [
     { val: "" },
     { val: "" },
@@ -116,9 +140,9 @@ describe.only("[Step 3] API Columns", () => {
     { val: "" },
   ];
   let initialColumns: Columns = [
-    { type: ColumnType.Basic, name: ColumnName.FirstName },
-    { type: ColumnType.Basic, name: ColumnName.LastName },
-    { type: ColumnType.Basic, name: ColumnName.CompanyName },
+    { type: ColumnType.Basic, name: ColumnName.FirstName, deps: [] },
+    { type: ColumnType.Basic, name: ColumnName.LastName, deps: [] },
+    { type: ColumnType.Basic, name: ColumnName.CompanyName, deps: [] },
     {
       type: ColumnType.Formula,
       name: ColumnName.GoogleSearchInput,
@@ -126,12 +150,14 @@ describe.only("[Step 3] API Columns", () => {
         type: FormulaType.Concat,
         init: "linkedin.com",
       },
+      deps: [ColumnName.FirstName, ColumnName.LastName, ColumnName.CompanyName],
     },
     {
       type: ColumnType.API,
       name: ColumnName.PerformSearch,
       apiType: ApiType.GoogleSearch,
       inputColumnName: ColumnName.GoogleSearchInput,
+      deps: [ColumnName.GoogleSearchInput],
     },
     {
       type: ColumnType.Formula,
@@ -142,12 +168,14 @@ describe.only("[Step 3] API Columns", () => {
         index: 0,
         field: "url",
       },
+      deps: [ColumnName.PerformSearch],
     },
     {
       type: ColumnType.API,
       name: ColumnName.LinkedinData,
       apiType: ApiType.LiProfile,
       inputColumnName: ColumnName.LinkedinUrl,
+      deps: [ColumnName.LinkedinUrl],
     },
   ];
 
@@ -209,11 +237,11 @@ describe.only("[Step 3] API Columns", () => {
       { val: "Clay" },
       { val: "linkedin.com Luna Ruan Clay" },
       {
-        val: "Search Complete",
+        val: "Search Found",
         apiData: mockAPIResponse(ApiType.GoogleSearch),
       },
       {
-        val: "linkedin.com/in/kareemamin",
+        val: "linkedin.com/in/lunaruan",
       },
       {
         val: "Profile Found",

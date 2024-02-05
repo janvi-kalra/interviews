@@ -6,6 +6,7 @@
 
 ### Execute
 
+`ts-node src/cases.ts`
 `npm test`
 
 ### Sources References

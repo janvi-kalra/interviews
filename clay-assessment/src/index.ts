@@ -62,37 +62,33 @@ export function mockAPIResponse(apiType: ApiType, metadata?: any) {
   }
 }
 
-function getDataFromAPI(
-  rowData: Row,
-  apiType: ApiType,
-  apiColumnIndex: number
-) {
+async function getDataFromAPI(apiType: ApiType): Promise<any[]> {
   return new Promise((resolve) => {
     const result = mockAPIResponse(apiType);
-    rowData[apiColumnIndex].apiData = result;
-
-    rowData[apiColumnIndex].val =
-      apiType === ApiType.GoogleSearch ? "Search Found" : "Profile Found";
     setTimeout(() => resolve(result), 2000);
   });
 }
 
-function evaluateApiColumn(
-  column: ApiColumn,
+async function evaluateApiColumn(
+  apiColumn: ApiColumn,
   columns: Columns,
   rowData: Row,
   apiColumnIndex: number,
   Q: ColumnNameQ
 ) {
   const inputColumn =
-    rowData[getCellIndexFromColumnName(columns, column.inputColumnName)];
+    rowData[getCellIndexFromColumnName(columns, apiColumn.inputColumnName)];
+  const apiType = apiColumn.apiType;
   if (inputColumn.val === "MISSING INPUT") {
     rowData[apiColumnIndex].val = "MISSING INPUT";
   } else {
     rowData[apiColumnIndex].val = "LOADING";
-    getDataFromAPI(rowData, column.apiType, apiColumnIndex);
+    const result = await getDataFromAPI(apiType);
+    rowData[apiColumnIndex].apiData = result;
+    rowData[apiColumnIndex].val =
+      apiType === ApiType.GoogleSearch ? "Search Found" : "Profile Found";
   }
-  updateQ(Q, columns, column.name);
+  updateQ(Q, columns, apiColumn.name);
 }
 
 function updateQ(
@@ -164,11 +160,11 @@ function getColumnFromColumnName(columns: Columns, columnName: ColumnName) {
   return columns.find((col) => col.name === columnName);
 }
 
-export function runWorkflowForRow(
+export async function runWorkflowForRow(
   updatedCell: CellUpdate,
   rowData: Row,
   columns: Columns
-): Row {
+): Promise<Row> {
   const Q = new Queue<ColumnName>();
   const colIndex = getCellIndexFromColumnName(columns, updatedCell.colName);
   const column =
@@ -184,7 +180,7 @@ export function runWorkflowForRow(
       evaluateFormula(column, columns, rowData, colIndex, Q);
       break;
     case ColumnType.API:
-      evaluateApiColumn(column, columns, rowData, colIndex, Q);
+      await evaluateApiColumn(column, columns, rowData, colIndex, Q);
       break;
     default:
       throw new Error("Invalid column type");
@@ -205,7 +201,7 @@ export function runWorkflowForRow(
         evaluateFormula(depCol, columns, rowData, depColIndex, Q);
         break;
       case ColumnType.API:
-        evaluateApiColumn(depCol, columns, rowData, depColIndex, Q);
+        await evaluateApiColumn(depCol, columns, rowData, depColIndex, Q);
         break;
       case ColumnType.Basic:
         throw new Error("A basic column type cannot be a dependent column");
@@ -223,5 +219,6 @@ export function runWorkflowForRow(
 }
 
 function refreshUI(rowData: Row) {
-  console.log(rowData.map((c) => c.val));
+  const cellValues = rowData.map((c) => c.val);
+  console.log(cellValues);
 }

@@ -5,6 +5,7 @@ import {
   Row,
   FormulaType,
   ApiType,
+  Cell,
 } from "./types";
 import { ColumnName, runWorkflowForRow } from ".";
 
@@ -57,23 +58,48 @@ let initialColumns: Columns = [
   },
 ];
 
-console.log("************* TRIGGER CELL UPDATE 1 *************");
+async function run(updateCell: CellUpdate, rowData: Row, columns: Columns) {
+  try {
+    rowData = await runWorkflowForRow(updateCell, rowData, columns);
+  } catch (error) {
+    console.log("FAILED WITH ERROR:", error);
+    throw error;
+  }
+}
+
 const firstUpdatedCell: CellUpdate = {
   colName: ColumnName.FirstName,
   newCell: { val: "Luna" },
 };
-rowData = runWorkflowForRow(firstUpdatedCell, rowData, initialColumns);
-
-console.log("************* TRIGGER CELL UPDATE 2 *************");
 const secondUpdatedCell: CellUpdate = {
   colName: ColumnName.LastName,
   newCell: { val: "Ruan" },
 };
-rowData = runWorkflowForRow(secondUpdatedCell, rowData, initialColumns);
-
-console.log("************* TRIGGER CELL UPDATE 3 *************");
 const thirdUpdatedCell: CellUpdate = {
   colName: ColumnName.CompanyName,
   newCell: { val: "Clay" },
 };
-rowData = runWorkflowForRow(thirdUpdatedCell, rowData, initialColumns);
+
+console.log("************* TRIGGER CELL UPDATE 1 *************");
+run(firstUpdatedCell, rowData, initialColumns)
+  .then(() => {
+    console.log("************* TRIGGER CELL UPDATE 2 *************");
+    run(secondUpdatedCell, rowData, initialColumns);
+  })
+  .then(() => {
+    console.log("************* TRIGGER CELL UPDATE 3 *************");
+    run(thirdUpdatedCell, rowData, initialColumns);
+  });
+
+/// Learnings:
+// 1. ts-node allows running await/async as top level
+// 2. the highest level needs to be .then() because cannot do await/async
+// 3. inside functions CAN do await
+
+// HARD PROBLEM
+// Walk away
+// Think
+// Rubber duck
+// Do strategies and write your learnings from each strategy
+// Don't just stare at the computer and randomly try things, going into deep rabbit holes and then
+// doing undo/redo. Huge time + energy suck & not using my brain.
