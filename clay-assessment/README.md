@@ -2,6 +2,9 @@
 
 - `ts-node src/cases.ts` : to try all examples
 - `npm test` : execute tests (used jest to write tests)
+
+## Structure
+
 - `src/index.ts` : where my main logic lives
 - `src/types.ts` : where all the types live
 
