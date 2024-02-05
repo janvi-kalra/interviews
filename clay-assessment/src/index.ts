@@ -38,25 +38,25 @@ export function mockAPIResponse(apiType: ApiType, metadata?: any) {
     case ApiType.GoogleSearch:
       return [
         {
-          url: "linkedin.com/in/kareemamin",
-          text: "Kareem is the CEO & Founder of a NYC-based Startup called Clay...",
+          url: "linkedin.com/in/lunaruan",
+          text: "Luna Ruan is...",
         },
         {
-          url: "twitter.com/kareemamin",
+          url: "twitter.com/lunaruan",
           text: "Welcome to my Twitter profile....",
         },
       ];
     case ApiType.LiProfile:
       return [
         {
-          name: "Kareem",
+          name: "Luna Ruan",
           job: "Software Engineer",
           tenure: "10 years",
         },
         {
           name: "Janvi",
           job: "Software Engineer",
-          tenure: "3 years",
+          tenure: "4 years",
         },
       ];
   }
@@ -133,8 +133,6 @@ function evaluateFormula(
       break;
     case FormulaType.Extract:
       const { field, index, columnName } = formulaCol.inputs;
-      console.log("got to extract for: ", columnName);
-
       const array =
         rowData[getCellIndexFromColumnName(columns, columnName)].apiData;
 
@@ -142,7 +140,7 @@ function evaluateFormula(
         rowData[formulaColIndex].val = "MISSING INPUT";
         break;
       }
-      rowData[formulaColIndex] = array[index][field];
+      rowData[formulaColIndex] = { val: array[index][field] };
       break;
     default:
       throw new Error("Invalid formula type");
@@ -175,6 +173,8 @@ export function runWorkflowForRow(
   const colIndex = getCellIndexFromColumnName(columns, updatedCell.colName);
   const column =
     columns[getCellIndexFromColumnName(columns, updatedCell.colName)];
+
+  // Update the initial cell.
   switch (column.type) {
     case ColumnType.Basic:
       rowData[colIndex] = updatedCell.newCell;
@@ -189,8 +189,10 @@ export function runWorkflowForRow(
     default:
       throw new Error("Invalid column type");
   }
+  refreshUI(rowData);
 
   // Reevaluate all columns that were affected.
+  let prevRowData = JSON.stringify(rowData);
   while (!Q.isEmpty()) {
     const depColName = Q.dequeue();
     if (!depColName) {
@@ -203,16 +205,20 @@ export function runWorkflowForRow(
         evaluateFormula(depCol, columns, rowData, depColIndex, Q);
         break;
       case ColumnType.API:
-        evaluateApiColumn(depCol, columns, rowData, colIndex, Q);
+        evaluateApiColumn(depCol, columns, rowData, depColIndex, Q);
         break;
       case ColumnType.Basic:
         throw new Error("A basic column type cannot be a dependent column");
       default:
         throw new Error("Invalid column type");
     }
+    // Only print out the UI if it has changed.
+    if (prevRowData !== JSON.stringify(rowData)) {
+      refreshUI(rowData);
+      prevRowData = JSON.stringify(rowData);
+    }
   }
 
-  refreshUI(rowData);
   return rowData;
 }
 
