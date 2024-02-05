@@ -85,16 +85,3 @@ async function runCases(rowData: Row, columns: Columns) {
 }
 
 runCases(rowData, initialColumns);
-
-/// Learnings:
-// 1. ts-node allows running await/async as top level
-// 2. the highest level needs to be .then() because cannot do await/async
-// 3. inside functions CAN do await
-
-// HARD PROBLEM
-// Walk away
-// Think
-// Rubber duck
-// Do strategies and write your learnings from each strategy
-// Don't just stare at the computer and randomly try things, going into deep rabbit holes and then
-// doing undo/redo. Huge time + energy suck & not using my brain.

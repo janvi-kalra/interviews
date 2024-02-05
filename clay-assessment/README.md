@@ -1,31 +1,19 @@
-### High Level Approach
+## To Run my Code
 
-- Every time a text changes, recompute all formulas
-- Every time a formula changes, recompute all APIs
-- I could hard code a bunch of dependant columns.
+`ts-node src/cases.ts` : to try all examples
+`npm test` : execute tests (used jest to write tests)
 
-### Execute
+## High Level Approach
 
-`ts-node src/cases.ts`
-`npm test`
+The system uses a Queue to manage dependencies between columns.
+When a cell is updated, the corresponding column is identified, and dependent columns are enqueued for reevaluation.
+
+Each cell has a display value and a hidden value. This is used for tying cells to information like `apiData` without rendering that data.
 
 ### Sources References
 
 - [jest TS dir configuration](https://bootcamp.uxdesign.cc/how-to-write-test-cases-in-typescript-fa7a263b7833): Followed these steps to set up jest configuration
 
-### Learnings
+### Potential Improvements
 
-- const [i, cell] of inputValues.entries(). Always OF. enumerate (python dic) vs entries (js)
-- inputValues[columnIndex] = inputValues
-  .filter((\_v, i) => i !== columnIndex)
-  .join(" ");
-- `.includes()` (inputValues.includes(""))
-- jest
-
-### Improvements
-
-- Wish I had made rowData + columns an instance variable of a class. Wouldn't have needed to keep passing it around
-
-### Note
-
-- Example #4 switches from "search found" to "search complete"
+- Make `rowData` & `columns` an instance variable of a class, so I don't need to keep passing them into every function

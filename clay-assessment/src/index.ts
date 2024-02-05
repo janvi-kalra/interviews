@@ -33,7 +33,7 @@ function getCellIndexFromColumnName(columns: Columns, columnName: ColumnName) {
 
 // Instructions mention that any can assume metadata necessary is passed in.
 // So just stubbing out the response, and not actually passing it in here.
-export function mockAPIResponse(apiType: ApiType, metadata?: any) {
+export function mockAPIResponse(apiType: ApiType) {
   switch (apiType) {
     case ApiType.GoogleSearch:
       return [
