@@ -5,7 +5,6 @@ import {
   Row,
   FormulaType,
   ApiType,
-  Cell,
 } from "./types";
 import { ColumnName, runWorkflowForRow } from ".";
 
