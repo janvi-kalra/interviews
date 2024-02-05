@@ -24,4 +24,4 @@
 ### Improvements
 
 - Wish I had made rowData + columns an instance variable of a class. Wouldn't have needed to keep passing it around
--
+- Assuming you can only change the text column. the others you have to reconfigure the column.

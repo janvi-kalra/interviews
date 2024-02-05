@@ -62,7 +62,7 @@ export function mockAPIResponse(apiType: ApiType, metadata?: any) {
   }
 }
 
-async function getDataFromAPI(
+function getDataFromAPI(
   rowData: Row,
   apiType: ApiType,
   apiColumnIndex: number
@@ -77,7 +77,7 @@ async function getDataFromAPI(
   });
 }
 
-async function evaluateApiColumn(
+function evaluateApiColumn(
   column: ApiColumn,
   columns: Columns,
   rowData: Row,
@@ -90,7 +90,7 @@ async function evaluateApiColumn(
     rowData[apiColumnIndex].val = "MISSING INPUT";
   } else {
     rowData[apiColumnIndex].val = "LOADING";
-    await getDataFromAPI(rowData, column.apiType, apiColumnIndex);
+    getDataFromAPI(rowData, column.apiType, apiColumnIndex);
   }
   updateQ(Q, columns, column.name);
 }
@@ -109,7 +109,7 @@ function updateQ(
   }
 }
 
-async function evaluateFormula(
+function evaluateFormula(
   formulaCol: FormulaColumn,
   columns: Columns,
   rowData: Row,
@@ -162,21 +162,15 @@ function columnIndicesOfType(columns: Columns, columnType: ColumnType) {
   return formulaColIndices;
 }
 
-function getColumnFromColumnName(
-  columns: Columns,
-  columnName: ColumnName | undefined
-) {
-  if (!columnName) {
-    return;
-  }
+function getColumnFromColumnName(columns: Columns, columnName: ColumnName) {
   return columns.find((col) => col.name === columnName);
 }
 
-export async function runWorkflowForRow(
+export function runWorkflowForRow(
   updatedCell: CellUpdate,
   rowData: Row,
   columns: Columns
-): Promise<Row> {
+): Row {
   const Q = new Queue<ColumnName>();
   const colIndex = getCellIndexFromColumnName(columns, updatedCell.colName);
   const column =
@@ -184,12 +178,13 @@ export async function runWorkflowForRow(
   switch (column.type) {
     case ColumnType.Basic:
       rowData[colIndex] = updatedCell.newCell;
+      updateQ(Q, columns, updatedCell.colName);
       break;
     case ColumnType.Formula:
-      await evaluateFormula(column, columns, rowData, colIndex, Q);
+      evaluateFormula(column, columns, rowData, colIndex, Q);
       break;
     case ColumnType.API:
-      await evaluateApiColumn(column, columns, rowData, colIndex, Q);
+      evaluateApiColumn(column, columns, rowData, colIndex, Q);
       break;
     default:
       throw new Error("Invalid column type");
@@ -197,13 +192,18 @@ export async function runWorkflowForRow(
 
   // Reevaluate all columns that were affected.
   while (!Q.isEmpty()) {
-    const depCol = getColumnFromColumnName(columns, Q.dequeue());
+    const depColName = Q.dequeue();
+    if (!depColName) {
+      break;
+    }
+    const depCol = getColumnFromColumnName(columns, depColName);
+    const depColIndex = getCellIndexFromColumnName(columns, depColName);
     switch (depCol?.type) {
       case ColumnType.Formula:
-        await evaluateFormula(depCol, columns, rowData, colIndex, Q);
+        evaluateFormula(depCol, columns, rowData, depColIndex, Q);
         break;
       case ColumnType.API:
-        await evaluateApiColumn(depCol, columns, rowData, colIndex, Q);
+        evaluateApiColumn(depCol, columns, rowData, colIndex, Q);
         break;
       case ColumnType.Basic:
         throw new Error("A basic column type cannot be a dependent column");
